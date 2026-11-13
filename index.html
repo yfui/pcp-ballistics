@@ -108,7 +108,13 @@ details>summary .v{color:var(--blue);font-family:var(--mono);font-weight:700;fon
 .modal .btns button{background:#14181d;color:var(--txt);border:1px solid var(--sep);
   border-radius:14px;padding:8px 12px;cursor:pointer;font-family:var(--sans)}
 .modal .btns button.primary{background:var(--btn);border-color:var(--btn);font-weight:700}
-#trajCanvas{width:100%;height:230px;display:block;background:#05070a}
+#trajCanvas{width:100%;height:280px;display:block;background:#05070a;border-bottom:1px solid var(--sep)}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--sep)}
+.dgrid div{display:flex;justify-content:space-between;align-items:center;gap:6px;
+  padding:7px 14px;border-bottom:1px solid #141a20}
+.dgrid b{color:var(--dim);font-size:12px;font-weight:400;white-space:nowrap}
+.dgrid span{font-family:var(--mono);font-weight:700;color:#ffd400;font-size:15px;
+  font-variant-numeric:tabular-nums;text-align:right}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -118,18 +124,25 @@ details>summary .v{color:var(--blue);font-family:var(--mono);font-weight:700;fon
 <div id="page-calc" class="page on"><div class="wrap">
   <header class="apphead"><h1>彈道學</h1><small id="hGun">—</small></header>
 
-  <div class="results">
-    <div class="r head"><span class="lab"></span><span>高低（垂直）</span><span>風（水平）</span></div>
-    <div class="r"><span class="lab">MRAD</span><span class="val" id="resMRADv">—</span><span class="val" id="resMRADw">—</span></div>
-    <div class="r"><span class="lab">MOA</span><span class="val" id="resMOAv">—</span><span class="val" id="resMOAw">—</span></div>
-    <div class="r"><span class="lab">公分</span><span class="val" id="resCMv">—</span><span class="val" id="resCMw">—</span></div>
-    <div class="r"><span class="lab">響數</span><span class="val" id="resCLKv">—</span><span class="val" id="resCLKw">—</span></div>
-    <div class="r sub"><span class="lab">剩餘</span><span class="val" id="resVel">—</span><span class="val" id="resEn">—</span></div>
-    <div class="r sub"><span class="lab">飛行時間</span><span class="val" id="resTof">—</span><span class="val"></span></div>
+  <canvas id="trajCanvas" height="280" style="height:280px"></canvas>
+
+  <div class="dgrid">
+    <div><b>垂直修正</b><span id="dCorr">—</span></div>
+    <div><b>響數</b><span id="dClk">—</span></div>
+    <div><b>風偏修正</b><span id="dWind">—</span></div>
+    <div><b>下墜</b><span id="dDrop">—</span></div>
+    <div><b>剩餘速度</b><span id="dVel">—</span></div>
+    <div><b>剩餘動能</b><span id="dEn">—</span></div>
+    <div><b>飛行時間</b><span id="dTof">—</span></div>
+    <div><b>近零 / 遠零</b><span id="dZeros">—</span></div>
   </div>
+
+  <div class="card" id="pbrCard">—</div>
 
   <div class="row"><label for="iDist">距離（公尺）</label>
     <input id="iDist" type="number" step="1" min="5" max="150" value="40"></div>
+  <div class="row"><label for="iKz">獵殺區大小（mm）<small>PBR 直射範圍判定</small></label>
+    <input id="iKz" type="number" step="5" min="10" max="150" value="40"></div>
   <div class="row"><label for="iInc">槍枝俯仰角（度）<small>上坡正、下坡負</small></label>
     <input id="iInc" type="number" step="1" min="-45" max="45" value="0"></div>
   <div class="row"><label for="iWind">風速（m/s）</label>
@@ -154,14 +167,14 @@ details>summary .v{color:var(--blue);font-family:var(--mono);font-weight:700;fon
     <div class="row"><label for="iAlt">海拔（m）</label><input id="iAlt" type="number" step="10" min="0" value="100"></div>
   </details>
 
-  <div class="sechead">靶場快速表（依目前風設定）</div>
-  <div class="tblpad"><table id="tgtTable"></table></div>
-
-  <details id="trajDetails">
-    <summary><span>彈道側視圖</span><span class="v" id="trajInfo">—</span></summary>
-    <canvas id="trajCanvas" height="230"></canvas>
-  </details>
   <p class="note">RK4 數值積分（Δt=1ms）· GA/G1 阻力表插值 · 含濕度/海拔/仰角/風向量修正。僅供合法運動射擊彈道估算參考。</p>
+</div></div>
+
+<!-- ================ 數據表 ================ -->
+<div id="page-table" class="page"><div class="wrap">
+  <header class="apphead"><h1>數據表</h1><small id="hGun3">—</small></header>
+  <div class="tblpad"><table id="dopeTable"></table></div>
+  <p class="note">藍底列＝歸零距離；每 5 公尺一格，風偏依目前風速與風向設定。方向字＝需修正方向（上/下、左/右）。</p>
 </div></div>
 
 <!-- ================ 分劃板 ================ -->
@@ -224,7 +237,8 @@ details>summary .v{color:var(--blue);font-family:var(--mono);font-weight:700;fon
 
 <!-- ================ 底部頁籤 ================ -->
 <nav class="tabbar"><div class="inner">
-  <button data-page="calc" class="on"><span class="ic">▦</span>彈道學</button>
+  <button data-page="calc" class="on"><span class="ic">∿</span>彈道圖</button>
+  <button data-page="table"><span class="ic">≣</span>數據表</button>
   <button data-page="ret"><span class="ic">⊕</span>分劃板</button>
   <button data-page="gear"><span class="ic">⚙</span>裝備</button>
 </div></nav>
@@ -360,6 +374,7 @@ let S={profiles:defProfiles(),active:0,ver:3,
   env:{temp:25,press:1013.25,pType:'qnh',rh:70,alt:100},
   disp:{unit:'MIL',clickMIL:0.1,clickMOA:0.25},
   sim:{dist:40,windV:0,clock:3,incline:0,calMag:24,curMag:24},
+  kz:4,
   ret:{zoom:20,step:5,side:1}};
 try{const saved=JSON.parse(localStorage.getItem(LS_KEY));
   if(saved&&saved.profiles&&saved.profiles.length){
@@ -368,7 +383,7 @@ try{const saved=JSON.parse(localStorage.getItem(LS_KEY));
       sim:{...S.sim,...saved.sim},ret:{zoom:20,step:5,side:1,...(saved.ret||{})}};
     if(!(saved.ver>=2)&&!S.profiles.some(p=>/kral/i.test(p.name||'')))S.profiles.unshift({...KRAL});
   }}catch(e){}
-S.ver=3;S.ret=S.ret||{zoom:20,step:5,side:1};if(!S.ret.side)S.ret.side=1;
+S.ver=3;S.ret=S.ret||{zoom:20,step:5,side:1};if(!S.ret.side)S.ret.side=1;if(!(S.kz>0))S.kz=4;
 function persist(){try{localStorage.setItem(LS_KEY,JSON.stringify(S));}catch(e){}}
 
 // ====== DOM 快捷 ======
@@ -392,6 +407,7 @@ function envToForm(){
   $('clickVal').value=S.disp.unit==='MIL'?S.disp.clickMIL:S.disp.clickMOA;
   const m=S.sim;
   $('iDist').value=m.dist;$('retDist').value=m.dist;
+  $('iKz').value=Math.round(S.kz*10);
   $('iWind').value=m.windV;$('iClock').value=m.clock;$('iInc').value=m.incline;
   $('calMag').value=m.calMag;$('curMag').value=m.curMag;
   $('retZoom').value=S.ret.zoom;$('retStep').value=S.ret.step;
@@ -409,6 +425,7 @@ function formToState(){
   S.disp.unit=$('unitSel').value;
   const cv=Math.max(0.005,+$('clickVal').value||0.1);
   if(S.disp.unit==='MIL')S.disp.clickMIL=cv;else S.disp.clickMOA=cv;
+  S.kz=Math.max(1,(+$('iKz').value||40))/10;
   S.sim.windV=Math.max(0,+$('iWind').value||0);
   S.sim.clock=+$('iClock').value||12;
   S.sim.incline=+$('iInc').value||0;
@@ -446,52 +463,91 @@ function recompute(){
     if(a.y<0&&b.y>=0||a.y>=0&&b.y<0)zeros.push(a.x+(0-a.y)/(b.y-a.y)*(b.x-a.x));
   }
   cache={p,e,m,atm,base,bore,traj,clean,apex,zeros};
+  cache.pbr=computePBR(base,bore,clean,S.kz);
   const massKg=p.wgt*GRAIN;
-  renderResults(massKg);renderTargets();renderInfo(massKg);
-  if($('trajDetails').open)drawTraj();
-  drawReticleApp();
+  renderCalc(massKg);renderDope(massKg);renderInfo(massKg);
+  drawTraj();drawReticleApp();
 }
 
-// ====== 彈道學頁 ======
+// ====== PBR 直射範圍（ChairGun 式）======
+function crossUp(sm,lv){
+  for(let i=1;i<sm.length;i++){
+    const a=sm[i-1],b=sm[i];
+    if(a.y<lv&&b.y>=lv)return a.x+(lv-a.y)/(b.y-a.y)*(b.x-a.x);
+  }
+  return null;
+}
+function crossDown(sm,lv){
+  for(let i=sm.length-1;i>0;i--){
+    const a=sm[i-1],b=sm[i];
+    if(a.y>=lv&&b.y<lv)return a.x+(lv-a.y)/(b.y-a.y)*(b.x-a.x);
+  }
+  return null;
+}
+function computePBR(base,bore,clean,kzCm){
+  const half=kzCm/200;                       // 獵殺區一半（m）
+  const near=clean[0].y>=-half?0:crossUp(clean,-half);
+  const far=crossDown(clean,-half);
+  // 最佳歸零：找槍管仰角使頂點＝獵殺區一半
+  const apexOf=a=>{
+    const t=simulate({...base,bore:a,windV:0,inclineDeg:0,maxRange:130});
+    let m=-Infinity;for(const s of t)if(s.y>m)m=s.y;
+    return{t,m};
+  };
+  let opt=null,lo=0,hi=0.08;
+  if(apexOf(hi).m>half){
+    for(let i=0;i<28;i++){const m2=(lo+hi)/2;(apexOf(m2).m>half?hi=m2:lo=m2);}
+    const r=apexOf((lo+hi)/2);
+    opt={zero:crossDown(r.t,0),
+         near:r.t[0].y>=-half?0:crossUp(r.t,-half),
+         far:crossDown(r.t,-half)};
+  }
+  return{near,far,half,opt};
+}
+
+// ====== 彈道圖頁 ======
 function dirV(mil){return mil>=0?'上':'下';}
 function dirW(w){return w>0?'左':'右';}   // 彈著偏右→向左修
-function renderResults(massKg){
+function renderCalc(massKg){
   const d=S.sim.dist, s=sampleAt(cache.traj,d);
   const mil=-s.y/d*1000, w=s.z/d*1000;
-  const am=Math.abs(mil), aw=Math.abs(w);
+  const c=dispCorr(mil), cw=dispCorr(w);
   const f=cache.p.ffp?1:(S.sim.curMag/S.sim.calMag);
   $('hGun').textContent=cache.p.name+'　歸零 '+cache.p.zeroR+' m';
   $('hGun2').textContent=cache.p.name;
-  $('resMRADv').textContent=dirV(mil)+fmt(am,2);
-  $('resMRADw').textContent=aw<0.005?'0.00':dirW(w)+fmt(aw,2);
-  $('resMOAv').textContent=dirV(mil)+fmt(am*MOA_PER_MIL,2);
-  $('resMOAw').textContent=aw<0.005?'0.00':dirW(w)+fmt(aw*MOA_PER_MIL,2);
-  $('resCMv').textContent=dirV(mil)+fmt(am*d/10,1);
-  $('resCMw').textContent=aw<0.005?'0.0':dirW(w)+fmt(aw*d/10,1);
-  const c=dispCorr(mil),cw=dispCorr(w);
-  $('resCLKv').textContent=dirV(mil)+fmt(Math.abs(c.clicks),1);
-  $('resCLKw').textContent=aw<0.005?'0.0':dirW(w)+fmt(Math.abs(cw.clicks),1);
-  $('resVel').textContent=fmt(s.v,0)+' m/s';
-  $('resEn').textContent=fmt(0.5*massKg*s.v*s.v,1)+' J';
-  $('resTof').textContent=fmt(s.t,3)+' s';
-  $('wxSummary').textContent=S.env.temp+'°C / '+S.env.press+' hPa / '+S.env.rh+'%　ρ='+fmt(cache.atm.rho,3);
-  $('trajInfo').textContent='頂點 +'+fmt((cache.apex.y||0)*100,1)+' cm';
-  if(f!==1)$('resMRADv').textContent+='（分劃×'+fmt(f,2)+'）';
+  $('hGun3').textContent=cache.p.name+'　每格 '+(S.disp.unit==='MIL'?S.disp.clickMIL+' MIL':S.disp.clickMOA+' MOA');
+  $('dCorr').textContent=dirV(mil)+fmt(Math.abs(c.val),2)+' '+c.unit+(f!==1?'（分劃×'+fmt(f,2)+'）':'');
+  $('dClk').textContent=dirV(mil)+fmt(Math.abs(c.clicks),1)+' 格';
+  $('dWind').textContent=Math.abs(w)<0.005?'0.00':dirW(w)+fmt(Math.abs(cw.val),2)+' '+c.unit;
+  $('dDrop').textContent=fmt(-s.y*100,1)+' cm';
+  $('dVel').textContent=fmt(s.v,1)+' m/s';
+  $('dEn').textContent=fmt(0.5*massKg*s.v*s.v,1)+' J';
+  $('dTof').textContent=fmt(s.t,3)+' s';
+  $('dZeros').textContent=cache.zeros.length?cache.zeros.map(z=>fmt(z,0)).join(' / ')+' m':'—';
+  $('wxSummary').textContent=S.env.temp+'°C / '+S.env.press+' hPa / '+S.env.rh+'%';
+  const P=cache.pbr;
+  let txt='<b>直射範圍 PBR</b>（獵殺區 '+Math.round(S.kz*10)+' mm）<br>'+
+    '目前歸零 '+cache.p.zeroR+' m → PBR '+(P.near!=null?fmt(P.near,1):'0.0')+' – '+
+    (P.far!=null?fmt(P.far,1)+' m':'>150 m')+'，頂點 +'+fmt((cache.apex.y||0)*100,1)+' cm';
+  if(P.opt&&P.opt.zero)txt+='<br><b>最佳歸零 '+fmt(P.opt.zero,1)+' m</b> → PBR '+
+    fmt(P.opt.near||0,1)+' – '+(P.opt.far!=null?fmt(P.opt.far,1)+' m':'>130 m')+'（頂點＝獵殺區一半）';
+  $('pbrCard').innerHTML=txt;
 }
-function renderTargets(){
+function renderDope(massKg){
   const unit=S.disp.unit;
-  let html='<thead><tr><th>距離 m</th><th>修正 '+unit+'</th><th>響數</th><th>風偏 '+unit+'</th><th>速度</th></tr></thead><tbody>';
-  TARGET_DISTS.forEach(d=>{
+  let html='<thead><tr><th>距離</th><th>下墜cm</th><th>修正'+unit+'</th><th>響數</th><th>風偏'+unit+'</th><th>速度</th><th>動能J</th><th>時間s</th></tr></thead><tbody>';
+  for(let d=5;d<=150;d+=5){
     const s=sampleAt(cache.traj,d);
     const mil=-s.y/d*1000, w=s.z/d*1000;
     const c=dispCorr(mil), cw=dispCorr(w);
-    const zr=Math.abs(d-cache.p.zeroR)<0.6?' class="zr"':'';
-    html+='<tr'+zr+'><td>'+d+'</td><td>'+dirV(mil)+fmt(Math.abs(c.val),2)+'</td>'+
+    const zr=Math.abs(d-cache.p.zeroR)<2.5?' class="zr"':'';
+    html+='<tr'+zr+'><td>'+d+'</td><td>'+fmt(-s.y*100,1)+'</td>'+
+      '<td>'+dirV(mil)+fmt(Math.abs(c.val),2)+'</td>'+
       '<td>'+fmt(Math.abs(c.clicks),1)+'</td>'+
-      '<td>'+(Math.abs(w)<0.005?'0.00':dirW(w)+fmt(Math.abs(cw.val),2))+'</td>'+
-      '<td>'+fmt(s.v,0)+'</td></tr>';
-  });
-  $('tgtTable').innerHTML=html+'</tbody>';
+      '<td>'+(Math.abs(w)<0.005?'0':dirW(w)+fmt(Math.abs(cw.val),2))+'</td>'+
+      '<td>'+fmt(s.v,0)+'</td><td>'+fmt(0.5*massKg*s.v*s.v,1)+'</td><td>'+fmt(s.t,2)+'</td></tr>';
+  }
+  $('dopeTable').innerHTML=html+'</tbody>';
 }
 function renderInfo(massKg){
   const p=cache.p, E0=0.5*massKg*p.v0*p.v0;
@@ -530,9 +586,20 @@ function drawTraj(){
     g.beginPath();g.moveTo(padL,Y(yc/100));g.lineTo(W-padR,Y(yc/100));g.stroke();
     g.fillText(yc+'cm',4,Y(yc/100)+3);
   }
-  g.strokeStyle='#3b4b58';g.setLineDash([5,4]);
-  g.beginPath();g.moveTo(X(0),Y(0));g.lineTo(X(maxX),Y(0));g.stroke();g.setLineDash([]);
-  g.strokeStyle='#3ea6ff';g.lineWidth=2;g.beginPath();
+  // 獵殺區色帶（ChairGun 式）
+  const half=cache.pbr?cache.pbr.half:0;
+  if(half>0&&Y(-half)>Y(half)){
+    g.fillStyle='rgba(60,220,90,.10)';
+    g.fillRect(padL,Y(half),W-padL-padR,Y(-half)-Y(half));
+    g.strokeStyle='rgba(60,220,90,.45)';g.setLineDash([2,3]);
+    g.beginPath();g.moveTo(padL,Y(half));g.lineTo(W-padR,Y(half));
+    g.moveTo(padL,Y(-half));g.lineTo(W-padR,Y(-half));g.stroke();g.setLineDash([]);
+  }
+  // 視線（紅）
+  g.strokeStyle='#ff5b52';
+  g.beginPath();g.moveTo(X(0),Y(0));g.lineTo(X(maxX),Y(0));g.stroke();
+  // 彈道（黃）
+  g.strokeStyle='#ffd400';g.lineWidth=2;g.beginPath();
   let started=false;
   for(const s of pts){
     if(s.y<yMin-0.02)break;
@@ -549,8 +616,17 @@ function drawTraj(){
     g.beginPath();g.arc(X(z),Y(0),3.5,0,7);g.fill();
     g.fillText(z.toFixed(0)+'m',X(z)-8,Y(0)-8);
   });
-  const d=S.sim.dist,s=sampleAt(cache.clean,d);
-  g.strokeStyle='#ff5b52';g.setLineDash([3,3]);
+  // PBR 近 / 遠標記
+  if(cache.pbr){
+    g.fillStyle='#3cdc5a';
+    [cache.pbr.near,cache.pbr.far].forEach(pxd=>{
+      if(pxd==null||pxd<=0)return;
+      g.beginPath();g.arc(X(pxd),Y(-half),3,0,7);g.fill();
+      g.fillText('PBR'+pxd.toFixed(0),X(pxd)-14,Y(-half)+14);
+    });
+  }
+  const d=S.sim.dist;
+  g.strokeStyle='#cfd8df';g.setLineDash([3,3]);
   g.beginPath();g.moveTo(X(d),padT);g.lineTo(X(d),H-padB);g.stroke();g.setLineDash([]);
 }
 
@@ -738,15 +814,14 @@ document.querySelectorAll('.tabbar button').forEach(b=>b.addEventListener('click
   document.querySelectorAll('.tabbar button').forEach(x=>x.classList.toggle('on',x===b));
   document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id==='page-'+b.dataset.page));
   if(b.dataset.page==='ret')drawReticleApp();
-  if(b.dataset.page==='calc'&&$('trajDetails').open)drawTraj();
+  if(b.dataset.page==='calc')drawTraj();
 }));
-$('trajDetails').addEventListener('toggle',()=>{if($('trajDetails').open)drawTraj();});
 
 // ====== 事件繫結與啟動 ======
 let timer=null;
 function recomputeSoon(){clearTimeout(timer);timer=setTimeout(recompute,40);}
 ['pName','v0','wgt','model','bc','sightH','zeroR',
- 'iTemp','iPress','iPType','iRh','iAlt','iWind','iClock','iInc',
+ 'iTemp','iPress','iPType','iRh','iAlt','iWind','iClock','iInc','iKz',
  'unitSel','clickVal','scopeType','calMag','curMag']
  .forEach(id=>$(id).addEventListener('input',recomputeSoon));
 $('unitSel').addEventListener('change',()=>{
