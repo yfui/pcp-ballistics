@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PCP 彈道計算</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PCP 彈道">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="icon-180.png">
 <style>
 /* 版面構想：手機 App 式三頁籤（彈道學 / 分劃板 / 裝備），黑底藍值列表 + 白色圓形分劃鏡 */
 :root{
@@ -833,6 +840,11 @@ window.addEventListener('resize',()=>{clearTimeout(timer);
   timer=setTimeout(()=>{recompute();},120);});
 
 refreshProfileSel();profileToForm();envToForm();recompute();
+
+// PWA：離線快取（僅在 https 且環境允許時註冊，開啟本機檔案或受限環境自動略過）
+if('serviceWorker' in navigator&&location.protocol==='https:'){
+  try{navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(e){}
+}
 </script>
 </body>
 </html>
